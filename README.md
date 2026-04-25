@@ -54,9 +54,41 @@ gcloud auth application-default login   # one-time
 
 The server picks the path on startup based on env vars.
 
+### Where the server looks for your key
+
+Resolved in priority order (first source wins):
+
+1. **Process environment** — anything passed in the MCP client's `env` block, exported in your shell, or already set when the server is launched.
+2. **Project-local `.env`** — `./.env` in whatever directory the server is launched from. Useful for `uv run` from a checkout.
+3. **Per-user config** — `~/.config/cshel-image-tools/.env`, plus `~/Library/Application Support/cshel-image-tools/.env` on macOS. Loaded regardless of cwd, so this is the cleanest place to put a key once and have every MCP client pick it up.
+
+The server ships a helper for the third option:
+
+```bash
+uvx cshel-image-tools init     # writes ~/.config/cshel-image-tools/.env (chmod 600)
+uvx cshel-image-tools where    # prints the lookup paths and which exist
+```
+
+After `init`, edit the file to paste your key. No more pasting into Claude Desktop / Claude Code config JSON.
+
 ## MCP client config
 
 ### Claude Desktop / Claude Code (`mcpServers` block)
+
+If you ran `cshel-image-tools init`, the `env` block is optional — the server will pick up your key from `~/.config/cshel-image-tools/.env`:
+
+```json
+{
+  "mcpServers": {
+    "cshel-image-tools": {
+      "command": "uvx",
+      "args": ["cshel-image-tools"]
+    }
+  }
+}
+```
+
+Or pass everything inline if you prefer:
 
 ```json
 {

@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from cshel_image_tools.config import DEFAULT_RESOLUTION, DEFAULT_SAFETY, load_config
+from cshel_image_tools.config import (
+    DEFAULT_RESOLUTION,
+    DEFAULT_SAFETY,
+    load_config,
+    user_config_paths,
+)
 
 ENV_KEYS = (
     "GEMINI_API_KEY",
@@ -79,3 +84,58 @@ def test_vertex_falsy_values(monkeypatch: pytest.MonkeyPatch, value: str) -> Non
     monkeypatch.setenv("GEMINI_API_KEY", "k")
     monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", value)
     assert load_config().use_vertex is False
+
+
+def test_user_config_paths_xdg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    paths = user_config_paths()
+    assert paths[0] == tmp_path / "xdg" / "cshel-image-tools" / ".env"
+
+
+def test_user_config_paths_no_duplicates(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    paths = user_config_paths()
+    assert len(paths) == len(set(paths))
+
+
+def test_load_config_picks_up_user_env_when_process_env_empty(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    user_env = tmp_path / "xdg" / "cshel-image-tools" / ".env"
+    user_env.parent.mkdir(parents=True)
+    user_env.write_text("GEMINI_API_KEY=from-user-config\n")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+
+    cfg = load_config()
+    assert cfg.api_key == "from-user-config"
+
+
+def test_process_env_overrides_user_config(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    user_env = tmp_path / "xdg" / "cshel-image-tools" / ".env"
+    user_env.parent.mkdir(parents=True)
+    user_env.write_text("GEMINI_API_KEY=from-user-config\n")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("GEMINI_API_KEY", "from-process-env")
+
+    cfg = load_config()
+    assert cfg.api_key == "from-process-env"
+
+
+def test_project_env_wins_over_user_config(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".env").write_text("GEMINI_API_KEY=from-project\n")
+
+    user_env = tmp_path / "xdg" / "cshel-image-tools" / ".env"
+    user_env.parent.mkdir(parents=True)
+    user_env.write_text("GEMINI_API_KEY=from-user-config\n")
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.chdir(project)
+
+    cfg = load_config()
+    assert cfg.api_key == "from-project"

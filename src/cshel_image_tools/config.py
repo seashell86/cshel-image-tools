@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
+
+APP_DIR_NAME = "cshel-image-tools"
 
 Resolution = Literal["1K", "2K", "4K"]
 SafetyMode = Literal["standard", "strict"]
@@ -43,8 +46,52 @@ def _truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def user_config_paths() -> list[Path]:
+    """Per-user .env candidate paths in priority order. First existing file wins.
+
+    Process env always wins over file values; a project-local `./.env` (loaded
+    separately) wins over these user-scoped fallbacks.
+    """
+    home = Path.home()
+    xdg_root = Path(os.environ.get("XDG_CONFIG_HOME") or home / ".config")
+
+    paths: list[Path] = [xdg_root / APP_DIR_NAME / ".env"]
+    if sys.platform == "darwin":
+        paths.append(home / "Library" / "Application Support" / APP_DIR_NAME / ".env")
+    elif sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            paths.append(Path(appdata) / APP_DIR_NAME / ".env")
+
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for p in paths:
+        if p not in seen:
+            seen.add(p)
+            unique.append(p)
+    return unique
+
+
+def _load_dotenv_chain() -> None:
+    """Load .env files in priority order: cwd, then per-user fallbacks.
+
+    `python-dotenv` does not override existing env vars by default, so the
+    first source to define a variable wins. Order:
+      1. process environment (already populated; preserved)
+      2. ./.env (project-local)
+      3. user config dir(s) (~/.config/cshel-image-tools/.env, etc.)
+    """
+    project_env = Path.cwd() / ".env"
+    if project_env.is_file():
+        load_dotenv(project_env)
+    for candidate in user_config_paths():
+        if candidate.is_file():
+            load_dotenv(candidate)
+            break
+
+
 def load_config() -> Config:
-    load_dotenv()
+    _load_dotenv_chain()
 
     output_dir = Path(os.getenv("CSHEL_IMAGE_OUTPUT_DIR") or DEFAULT_OUTPUT_DIR).expanduser().resolve()
 
