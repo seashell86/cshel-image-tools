@@ -11,6 +11,10 @@ from dotenv import load_dotenv
 
 Resolution = Literal["1K", "2K", "4K"]
 SafetyMode = Literal["standard", "strict"]
+AspectRatio = Literal[
+    "1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2",
+    "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1",
+]
 
 VALID_RESOLUTIONS: tuple[Resolution, ...] = ("1K", "2K", "4K")
 VALID_SAFETY_MODES: tuple[SafetyMode, ...] = ("standard", "strict")

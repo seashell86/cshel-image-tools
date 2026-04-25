@@ -6,12 +6,12 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 from google import genai
 from google.genai import types
 
-from cshel_image_tools.config import Config, Resolution
+from cshel_image_tools.config import AspectRatio, Config, Resolution
 from cshel_image_tools.cost import Usage, compute_usage
 from cshel_image_tools.images import save_image_bytes, to_mcp_image
 from cshel_image_tools.safety import parse_safety, safety_settings_for
@@ -20,10 +20,7 @@ log = logging.getLogger(__name__)
 
 MODEL = "gemini-3-pro-image-preview"
 
-VALID_ASPECT_RATIOS = (
-    "1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2",
-    "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1",
-)
+VALID_ASPECT_RATIOS: tuple[str, ...] = get_args(AspectRatio)
 
 
 @dataclass
