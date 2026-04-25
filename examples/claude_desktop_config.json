@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "cshel-image-tools": {
+      "command": "uvx",
+      "args": ["cshel-image-tools"],
+      "env": {
+        "GEMINI_API_KEY": "PASTE_YOUR_AI_STUDIO_KEY_HERE",
+        "CSHEL_IMAGE_OUTPUT_DIR": "/Users/YOU/Pictures/nano-banana",
+        "CSHEL_IMAGE_DEFAULT_RESOLUTION": "2K",
+        "CSHEL_IMAGE_SAFETY": "standard"
+      }
+    },
+
+    "_cshel-image-tools-vertex-example": {
+      "command": "uvx",
+      "args": ["cshel-image-tools"],
+      "env": {
+        "GOOGLE_GENAI_USE_VERTEXAI": "true",
+        "GOOGLE_CLOUD_PROJECT": "your-gcp-project-id",
+        "GOOGLE_CLOUD_LOCATION": "us-central1",
+        "CSHEL_IMAGE_OUTPUT_DIR": "/Users/YOU/Pictures/nano-banana"
+      }
+    }
+  }
+}

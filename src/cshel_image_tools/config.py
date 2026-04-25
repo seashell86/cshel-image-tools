@@ -1,0 +1,69 @@
+"""Server configuration loaded from environment variables."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+from dotenv import load_dotenv
+
+Resolution = Literal["1K", "2K", "4K"]
+SafetyMode = Literal["standard", "strict"]
+
+VALID_RESOLUTIONS: tuple[Resolution, ...] = ("1K", "2K", "4K")
+VALID_SAFETY_MODES: tuple[SafetyMode, ...] = ("standard", "strict")
+
+DEFAULT_OUTPUT_DIR = "generated-images"
+DEFAULT_RESOLUTION: Resolution = "2K"
+DEFAULT_SAFETY: SafetyMode = "standard"
+
+
+@dataclass(frozen=True)
+class Config:
+    output_dir: Path
+    default_resolution: Resolution
+    safety_mode: SafetyMode
+    use_vertex: bool
+    api_key: str | None
+    project: str | None
+    location: str | None
+
+    @property
+    def auth_mode(self) -> Literal["vertex", "ai_studio"]:
+        return "vertex" if self.use_vertex else "ai_studio"
+
+
+def _truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def load_config() -> Config:
+    load_dotenv()
+
+    output_dir = Path(os.getenv("CSHEL_IMAGE_OUTPUT_DIR") or DEFAULT_OUTPUT_DIR).expanduser().resolve()
+
+    resolution = os.getenv("CSHEL_IMAGE_DEFAULT_RESOLUTION", DEFAULT_RESOLUTION)
+    if resolution not in VALID_RESOLUTIONS:
+        raise ValueError(
+            f"CSHEL_IMAGE_DEFAULT_RESOLUTION must be one of {VALID_RESOLUTIONS}, got {resolution!r}"
+        )
+
+    safety = os.getenv("CSHEL_IMAGE_SAFETY", DEFAULT_SAFETY)
+    if safety not in VALID_SAFETY_MODES:
+        raise ValueError(
+            f"CSHEL_IMAGE_SAFETY must be one of {VALID_SAFETY_MODES}, got {safety!r}"
+        )
+
+    use_vertex = _truthy(os.getenv("GOOGLE_GENAI_USE_VERTEXAI"))
+
+    return Config(
+        output_dir=output_dir,
+        default_resolution=resolution,
+        safety_mode=safety,
+        use_vertex=use_vertex,
+        api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"),
+        project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+        location=os.getenv("GOOGLE_CLOUD_LOCATION"),
+    )
