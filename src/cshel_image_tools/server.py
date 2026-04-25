@@ -38,9 +38,30 @@ def _make_server() -> FastMCP:
     mcp = FastMCP(
         "cshel-image-tools",
         instructions=(
-            "Google Nano Banana Pro (Gemini 3 Pro Image) tools: generate, edit, "
-            "compose, and upscale images. Each tool returns the saved file paths, "
-            "token usage, USD cost estimate, and the image content inline."
+            "Image tools backed by Google's Nano Banana Pro (Gemini 3 Pro Image, "
+            "model gemini-3-pro-image-preview).\n\n"
+            "Tool selection:\n"
+            "- generate_image: create an image from scratch from a text prompt.\n"
+            "- edit_image: modify ONE existing image with a prompt (e.g. 'add a cat', "
+            "  'make it night time'). Preserves the input aspect ratio.\n"
+            "- compose_images: combine 2-14 reference images into one new image. Use for "
+            "  putting subject A in scene B, character + outfit, group shots, style transfer.\n"
+            "- upscale_image: regenerate an image at 4K with content preserved.\n\n"
+            "Prompting tips:\n"
+            "- Be concrete and visual. Describe subject, setting, lighting, camera/lens, "
+            "  time of day, mood. 'A red bicycle leaning on a mustard wall, late-afternoon "
+            "  golden light, 35mm photo' beats 'a bike'.\n"
+            "- Nano Banana Pro renders text-in-image well; quote the exact text you want.\n"
+            "- For 4K, expect ~80% higher cost than 2K but genuinely more detail (native "
+            "  render, not an upscale).\n\n"
+            "Workflow:\n"
+            "- Tools save to disk AND return the image inline so you can react to it. "
+            "  Chain calls by passing the absolute path from a previous result's `paths[0]` "
+            "  to the next tool's `image` argument.\n"
+            "- Every result includes `usage.cost_usd` and `safety.blocked` — surface these "
+            "  to the user when relevant.\n"
+            "- If a generation is blocked by safety, do not retry the same prompt; "
+            "  rephrase or ask the user."
         ),
     )
 
@@ -54,6 +75,9 @@ def _make_server() -> FastMCP:
         negative_prompt: str | None = None,
     ) -> list[Any]:
         """Generate one or more images from a text prompt using Gemini 3 Pro Image (Nano Banana Pro).
+
+        Use when: there is no input image and the user wants a fresh image. Prefer this
+        over compose_images when you have zero reference images.
 
         Args:
             prompt: What to generate. Be specific about subject, style, lighting, framing.
@@ -83,6 +107,10 @@ def _make_server() -> FastMCP:
     ) -> list[Any]:
         """Edit an existing image with a text instruction. Aspect ratio of the input is preserved.
 
+        Use when: there is exactly ONE input image and the user wants a targeted change
+        (add/remove a subject, change lighting, change style, fix a detail). Use
+        compose_images instead if you have 2+ reference images.
+
         Args:
             image: Absolute path to a local image OR a data URL (data:image/png;base64,...).
             prompt: Plain-language edit instruction (e.g., "add a small dog on the left").
@@ -99,8 +127,10 @@ def _make_server() -> FastMCP:
     ) -> list[Any]:
         """Combine 2-14 reference images into a single new image guided by a prompt.
 
-        Useful for: putting a subject in a different scene, blending styles,
-        merging characters, transferring outfits/lighting, multi-subject group shots.
+        Use when: you have 2+ reference images and want them blended/composited.
+        Examples: subject A in scene B, character + outfit reference, group photo from
+        individual portraits, style transfer (subject + style reference). For a single
+        input image use edit_image instead.
 
         Args:
             images: List of 2-14 paths or data URLs.
@@ -124,8 +154,12 @@ def _make_server() -> FastMCP:
     ) -> list[Any]:
         """Regenerate an image at 4K with content preserved, adding fine detail.
 
-        Note: Nano Banana Pro has no dedicated upscale endpoint, so this is
-        implemented as a 4K edit pass with a content-preserving prompt.
+        Use when: an existing image needs more detail or higher resolution and the
+        content/composition should NOT change. If the user wants both more detail AND
+        creative changes, use edit_image with resolution=4K instead.
+
+        Note: Nano Banana Pro has no dedicated upscale endpoint, so this is implemented
+        as a 4K edit pass with a content-preserving prompt.
 
         Args:
             image: Absolute path or data URL.
