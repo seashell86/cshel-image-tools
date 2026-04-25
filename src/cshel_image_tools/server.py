@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
 from cshel_image_tools import __version__
 from cshel_image_tools.client import AuthError, build_client, describe_auth
 from cshel_image_tools.config import AspectRatio, Resolution, load_config
+from cshel_image_tools.tools._common import ToolResponse
 from cshel_image_tools.tools.compose import compose_images as _compose
 from cshel_image_tools.tools.edit import edit_image as _edit
 from cshel_image_tools.tools.generate import generate_image as _generate
@@ -65,7 +65,7 @@ def _make_server() -> FastMCP:
         ),
     )
 
-    @mcp.tool()
+    @mcp.tool(structured_output=False)
     def generate_image(
         prompt: str,
         aspect_ratio: AspectRatio = "1:1",
@@ -73,7 +73,7 @@ def _make_server() -> FastMCP:
         num_images: int = 1,
         seed: int | None = None,
         negative_prompt: str | None = None,
-    ) -> list[Any]:
+    ) -> ToolResponse:
         """Generate one or more images from a text prompt using Gemini 3 Pro Image (Nano Banana Pro).
 
         Use when: there is no input image and the user wants a fresh image. Prefer this
@@ -99,12 +99,12 @@ def _make_server() -> FastMCP:
             negative_prompt=negative_prompt,
         )
 
-    @mcp.tool()
+    @mcp.tool(structured_output=False)
     def edit_image(
         image: str,
         prompt: str,
         resolution: Resolution = "2K",
-    ) -> list[Any]:
+    ) -> ToolResponse:
         """Edit an existing image with a text instruction. Aspect ratio of the input is preserved.
 
         Use when: there is exactly ONE input image and the user wants a targeted change
@@ -118,13 +118,13 @@ def _make_server() -> FastMCP:
         """
         return _edit(client, config, image=image, prompt=prompt, resolution=resolution)
 
-    @mcp.tool()
+    @mcp.tool(structured_output=False)
     def compose_images(
         images: list[str],
         prompt: str,
         aspect_ratio: AspectRatio = "1:1",
         resolution: Resolution = "2K",
-    ) -> list[Any]:
+    ) -> ToolResponse:
         """Combine 2-14 reference images into a single new image guided by a prompt.
 
         Use when: you have 2+ reference images and want them blended/composited.
@@ -147,11 +147,11 @@ def _make_server() -> FastMCP:
             resolution=resolution,
         )
 
-    @mcp.tool()
+    @mcp.tool(structured_output=False)
     def upscale_image(
         image: str,
         enhance_prompt: str | None = None,
-    ) -> list[Any]:
+    ) -> ToolResponse:
         """Regenerate an image at 4K with content preserved, adding fine detail.
 
         Use when: an existing image needs more detail or higher resolution and the

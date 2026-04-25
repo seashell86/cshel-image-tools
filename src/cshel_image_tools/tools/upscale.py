@@ -6,13 +6,17 @@ upscaling as an edit pass pinned to image_size=4K.
 
 from __future__ import annotations
 
-from typing import Any
-
 from google import genai
 
 from cshel_image_tools.config import Config
 from cshel_image_tools.images import load_input_image
-from cshel_image_tools.tools._common import build_config, call_model, package, to_tool_response
+from cshel_image_tools.tools._common import (
+    ToolResponse,
+    build_config,
+    call_model,
+    package,
+    to_tool_response,
+)
 
 DEFAULT_PROMPT = (
     "Increase resolution and add fine, photoreal detail. "
@@ -26,7 +30,7 @@ def upscale_image(
     *,
     image: str,
     enhance_prompt: str | None = None,
-) -> list[Any]:
+) -> ToolResponse:
     if not image or not image.strip():
         raise ValueError("image (path or data URL) is required")
 

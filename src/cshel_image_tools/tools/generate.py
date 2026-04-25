@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from google import genai
 
 from cshel_image_tools.config import Config
 from cshel_image_tools.tools._common import (
+    ToolResponse,
     build_config,
     call_model,
     package,
@@ -29,7 +28,7 @@ def generate_image(
     num_images: int = 1,
     seed: int | None = None,
     negative_prompt: str | None = None,
-) -> list[Any]:
+) -> ToolResponse:
     if not prompt or not prompt.strip():
         raise ValueError("prompt is required")
     if not 1 <= num_images <= MAX_IMAGES:

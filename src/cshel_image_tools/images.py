@@ -8,7 +8,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from mcp.server.fastmcp import Image as MCPImage
+from mcp.types import ImageContent
 from PIL import Image as PILImage
 
 DATA_URL_RE = re.compile(r"^data:(?P<mime>image/[a-zA-Z0-9.+-]+);base64,(?P<data>.+)$", re.DOTALL)
@@ -44,6 +44,15 @@ def save_image_bytes(
     return path
 
 
-def to_mcp_image(image_bytes: bytes, mime_type: str = "image/png") -> MCPImage:
-    fmt = mime_type.split("/")[-1]
-    return MCPImage(data=image_bytes, format=fmt)
+def to_mcp_image(image_bytes: bytes, mime_type: str = "image/png") -> ImageContent:
+    """Build a protocol-level ImageContent block from raw image bytes.
+
+    Returning `mcp.types.ImageContent` directly (rather than the
+    `mcp.server.fastmcp.Image` helper) avoids FastMCP's structured-output
+    pydantic pass, which fails to serialize the helper class.
+    """
+    return ImageContent(
+        type="image",
+        data=base64.b64encode(image_bytes).decode("ascii"),
+        mimeType=mime_type,
+    )

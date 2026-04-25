@@ -10,11 +10,14 @@ from typing import Any, get_args
 
 from google import genai
 from google.genai import types
+from mcp.types import ImageContent, TextContent
 
 from cshel_image_tools.config import AspectRatio, Config, Resolution
 from cshel_image_tools.cost import Usage, compute_usage
 from cshel_image_tools.images import save_image_bytes, to_mcp_image
 from cshel_image_tools.safety import parse_safety, safety_settings_for
+
+ToolResponse = list[TextContent | ImageContent]
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +142,7 @@ def package(
     )
 
 
-def to_tool_response(result: GenResult, *, extra: dict[str, Any] | None = None) -> list[Any]:
+def to_tool_response(result: GenResult, *, extra: dict[str, Any] | None = None) -> ToolResponse:
     summary: dict[str, Any] = {
         "paths": [str(p) for p in result.paths],
         "usage": result.usage.to_dict(),
@@ -149,10 +152,10 @@ def to_tool_response(result: GenResult, *, extra: dict[str, Any] | None = None) 
     if extra:
         summary.update(extra)
 
-    response_blocks: list[Any] = [json.dumps(summary, indent=2)]
+    blocks: ToolResponse = [TextContent(type="text", text=json.dumps(summary, indent=2))]
     for data, mime in zip(result.image_bytes, result.mime_types, strict=True):
-        response_blocks.append(to_mcp_image(data, mime))
-    return response_blocks
+        blocks.append(to_mcp_image(data, mime))
+    return blocks
 
 
 def validate_aspect_ratio(value: str | None) -> str | None:

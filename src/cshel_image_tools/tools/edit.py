@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from google import genai
 
 from cshel_image_tools.config import Config
 from cshel_image_tools.images import load_input_image
 from cshel_image_tools.tools._common import (
+    ToolResponse,
     build_config,
     call_model,
     package,
@@ -24,7 +23,7 @@ def edit_image(
     image: str,
     prompt: str,
     resolution: str | None = None,
-) -> list[Any]:
+) -> ToolResponse:
     if not prompt or not prompt.strip():
         raise ValueError("prompt is required")
     if not image or not image.strip():
